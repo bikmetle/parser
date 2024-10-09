@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "parser"
+version = "0.1.0"
+description = ""
+authors = ["bikmetle <hamid-nv@vivaldi.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+browsermob-proxy = "^0.8.0"
+selenium = "^4.18.1"
+aioconsole = "^0.7.0"
+selenium-wire = "^5.1.0"
+setuptools = "^72.1.0"
+blinker = "1.7.0"
+chardet = "^5.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
