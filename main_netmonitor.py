@@ -8,20 +8,33 @@ from selenium.webdriver.firefox.service import Service
 from selenium.common.exceptions import JavascriptException
 from urls_to_skip import urls_to_skip
 
+
+def save_cookies(driver, path):
+    with open(path, 'w') as file:
+        json.dump(driver.get_cookies(), file)
+
+def load_cookies(driver, path):
+    with open(path, 'r') as file:
+        cookies = json.load(file)
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+
+
 options=Options()
 # firefox_profile = FirefoxProfile()
-firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/850dvzbs.default")
+firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/699rashk.default-release")
 options.add_argument("--devtools")   
 firefox_profile.set_preference("devtools.toolbox.selectedTool", "netmonitor")
 firefox_profile.set_preference("devtools.netmonitor.persistlog", True)
 options.profile = firefox_profile
-geckodriver_path = "/snap/bin/geckodriver"
+geckodriver_path = "/usr/local/bin/geckodriver"
 driver_service = Service(executable_path=geckodriver_path)
 
 browser = webdriver.Firefox(
     service=driver_service,
     options=options,
 )
+load_cookies(browser, "cookies.txt")
 
 # record interesting stuff
 ...
@@ -48,6 +61,8 @@ def get_har_data(seconds=1):
     return har_data
 
 har_data = get_har_data()
+
+save_cookies(browser, "cookies.txt")
 browser.quit()
 
 
