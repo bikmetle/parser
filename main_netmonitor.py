@@ -1,17 +1,31 @@
 from contextlib import contextmanager
+from selenium import webdriver
+from selenium.common.exceptions import JavascriptException
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+from urls_to_skip import urls_to_skip
 import json
 import logging
 import os
 import time
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
-from selenium.webdriver.firefox.service import Service
-from selenium.common.exceptions import JavascriptException
-from urls_to_skip import urls_to_skip
+import subprocess
 
 logging.basicConfig(level=logging.INFO)
 
+root = os.path.dirname(__file__)
+
+url='https://hackerone.com/directory/programs?offers_bounties=true&order_direction=DESC&order_field=launched_at'
+
+def start_ssh_tunnel():
+    try:
+        command = ["ssh", "call", "-fN", "-D", "1080"]
+        subprocess.run(command, check=True)
+        logging.info("SSH command executed successfully.")
+    except subprocess.CalledProcessError as e:
+        logging.info(f"An error occurred while executing the SSH command: {e}")
+    except Exception as e:
+        logging.info(f"Unexpected error: {e}")
 
 @contextmanager
 def selenium_driver():
@@ -90,7 +104,8 @@ def save_har_data(har_data):
 
 
 with selenium_driver() as driver:
-    driver.get("https://lk.mango-office.ru")
+    start_ssh_tunnel()
+    driver.get(url)
     loadCookies()
 
     project_name = input("Enter the project name or `exit`: ")
