@@ -1,3 +1,6 @@
+# todo scroll down
+
+
 import requests
 
 url = "https://hackerone.com/graphql"
@@ -19,44 +22,7 @@ headers = {
     "TE": "trailers",
 }
 
-# JSON payload from the JSON
 payload = {
-    "operationName": "DirectoryQuery",
-    "variables": {
-        "where": {
-            "_and": [
-                {
-                    "_or": [
-                        {"offers_bounties": {"_eq": True}},
-                        {"external_program": {"offers_rewards": {"_eq": True}}},
-                    ]
-                },
-                {
-                    "_or": [
-                        {"submission_state": {"_eq": "open"}},
-                        {"submission_state": {"_eq": "api_only"}},
-                        {"external_program": {}},
-                    ]
-                },
-                {"_not": {"external_program": {}}},
-                {
-                    "_or": [
-                        {
-                            "_and": [
-                                {"state": {"_neq": "sandboxed"}},
-                                {"state": {"_neq": "soft_launched"}},
-                            ]
-                        },
-                        {"external_program": {}},
-                    ]
-                },
-            ]
-        },
-        "first": 25,
-        "secureOrderBy": {"launched_at": {"_direction": "DESC"}},
-        "product_area": "directory",
-        "product_feature": "programs",
-    },
     "query": """query DirectoryQuery($cursor: String, $secureOrderBy: FiltersTeamFilterOrder, $where: FiltersTeamFilterInput) {
   me {
     id
