@@ -19,7 +19,7 @@ root = os.path.dirname(__file__)
 
 url='https://hackerone.com/directory/programs?offers_bounties=true&order_direction=DESC&order_field=launched_at'
 hostname = urlparse(url).hostname.split('.')[0]
-cookies_file = f"cookies_{hostname}.json"
+cookies_file = f"cookies/{hostname}.json"
 is_tunnel_enabled = False
 
 
