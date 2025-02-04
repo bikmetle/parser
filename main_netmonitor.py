@@ -107,7 +107,7 @@ def save_har_data(har_data):
         if any(url in entry['request']['url'] for url in urls_to_skip):
             continue
 
-        file = f"{project_name}_p/{entry['startedDateTime']}.json"
+        file = f"sites/{project_name}/{entry['startedDateTime']}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
@@ -125,7 +125,7 @@ with selenium_driver() as driver:
 
     if project_name != 'exit':
         try:
-            project_dir = f"{project_name}_p"
+            project_dir = f"sites/{project_name}"
             os.mkdir(project_dir)
         except OSError as error:
             logging.info(f"Failed to create folder: {error}")
