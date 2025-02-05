@@ -94,7 +94,8 @@ def saveCookies(driver):
 
 
 def loadCookies():
-    if cookies_file in os.listdir():
+    dir_name, file_name = cookies_file.split("/")
+    if file_name in os.listdir(dir_name):
         with open(cookies_file, 'r') as file:
             cookies = json.load(file)
         for cookie in cookies:
