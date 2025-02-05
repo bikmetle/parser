@@ -17,8 +17,9 @@ logging.basicConfig(level=logging.INFO)
 
 root = os.path.dirname(__file__)
 
-url='https://vpbx.mts.ru'
-hostname = ".".join(url.hostname.split(".")[:-1])
+url = "https://vpbx.mts.ru"
+parsed_url = urlparse(url)
+hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
 is_tunnel_enabled = False
 
