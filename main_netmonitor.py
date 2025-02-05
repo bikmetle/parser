@@ -11,13 +11,35 @@ import os
 import time
 import subprocess
 from urllib.parse import urlparse
-
+from sites.urls import URLS
 
 logging.basicConfig(level=logging.INFO)
 
+print("Available URLs:")
+for index, url in enumerate(URLS):
+    print(f"{index}: {url}")
+
+while True:
+    chosen_index = input("\nPlease enter the index of the URL: ")
+
+    try:
+        chosen_index = int(chosen_index)
+    except:
+        print("\nPlease enter a valid integer index.")
+        continue    
+
+    if chosen_index >= len(URLS):
+        print("\nPlease choose a valid index from the list")
+        continue    
+
+    url = URLS[chosen_index]
+    print(f"\nYou chose: {url}")
+    break
+
+logging.info("Starting firefox session.")
+
 root = os.path.dirname(__file__)
 
-url = "https://vpbx.mts.ru"
 parsed_url = urlparse(url)
 hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
@@ -121,7 +143,7 @@ with selenium_driver() as driver:
     driver.get(url)
     loadCookies()
 
-    project_name = input("Enter the project name or `exit`: ")
+    project_name = input("Enter the project name to save or type `exit`: ")
     saveCookies(driver)
 
     if project_name != 'exit':
