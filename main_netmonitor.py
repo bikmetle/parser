@@ -10,12 +10,19 @@ import logging
 import os
 import time
 import subprocess
+from urllib.parse import urlparse
+
 
 logging.basicConfig(level=logging.INFO)
 
 root = os.path.dirname(__file__)
 
-url='https://hackerone.com/directory/programs?offers_bounties=true&order_direction=DESC&order_field=launched_at'
+url = "https://vpbx.mts.ru"
+parsed_url = urlparse(url)
+hostname = ".".join(parsed_url.hostname.split(".")[:-1])
+cookies_file = f"cookies/{hostname}.json"
+is_tunnel_enabled = False
+
 
 def start_ssh_tunnel():
     try:
@@ -30,7 +37,12 @@ def start_ssh_tunnel():
 @contextmanager
 def selenium_driver():
     options=Options()
-    firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/699rashk.default-release")
+    
+    if is_tunnel_enabled:
+        firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/699rashk.default-release")
+    else:
+        firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/dlvoc3tb.default")
+
     options.add_argument("--devtools")   
     firefox_profile.set_preference("devtools.toolbox.selectedTool", "netmonitor")
     firefox_profile.set_preference("devtools.netmonitor.persistlog", True)
@@ -54,14 +66,14 @@ def selenium_driver():
 def saveCookies(driver):
     cookies = driver.get_cookies()
 
-    with open('cookies.json', 'w') as file:
+    with open(cookies_file, 'w') as file:
         json.dump(cookies, file)
     logging.info('New Cookies saved successfully')
 
 
 def loadCookies():
-    if 'cookies.json' in os.listdir():
-        with open('cookies.json', 'r') as file:
+    if cookies_file in os.listdir():
+        with open(cookies_file, 'r') as file:
             cookies = json.load(file)
         for cookie in cookies:
             driver.add_cookie(cookie)
@@ -96,7 +108,7 @@ def save_har_data(har_data):
         if any(url in entry['request']['url'] for url in urls_to_skip):
             continue
 
-        file = f"{project_name}_p/{entry['startedDateTime']}.json"
+        file = f"sites/{project_name}/{entry['startedDateTime']}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
@@ -104,7 +116,8 @@ def save_har_data(har_data):
 
 
 with selenium_driver() as driver:
-    start_ssh_tunnel()
+    if is_tunnel_enabled:
+        start_ssh_tunnel()
     driver.get(url)
     loadCookies()
 
@@ -113,7 +126,7 @@ with selenium_driver() as driver:
 
     if project_name != 'exit':
         try:
-            project_dir = f"{project_name}_p"
+            project_dir = f"sites/{project_name}"
             os.mkdir(project_dir)
         except OSError as error:
             logging.info(f"Failed to create folder: {error}")

@@ -1,11 +1,10 @@
-venv
 .vscode
 browsermob-proxy
 server.log
 bmp.log
-.json
 .python-version
-*_p/
 __pycache__/
 ignore/
-cookies.json
+cookies
+sites
+.env

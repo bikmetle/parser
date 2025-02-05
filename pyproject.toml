@@ -14,7 +14,7 @@ selenium-wire = "^5.1.0"
 setuptools = "^72.1.0"
 blinker = "1.7.0"
 chardet = "^5.2.0"
-requests = "^2.32.3"
+python-dotenv = "^1.0.1"
 
 
 [build-system]
