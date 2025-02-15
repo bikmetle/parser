@@ -6,7 +6,6 @@ bmp.log
 __pycache__/
 ignore/
 cookies
-sites
 .env
 har_data/
 projects/
