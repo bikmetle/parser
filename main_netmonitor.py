@@ -11,7 +11,7 @@ import os
 import time
 import subprocess
 from urllib.parse import urlparse
-from sites.urls import URLS
+from urls import URLS
 
 logging.basicConfig(level=logging.INFO)
 
@@ -131,7 +131,7 @@ def save_har_data(har_data):
         if any(url in entry['request']['url'] for url in urls_to_skip):
             continue
 
-        file = f"sites/{project_name}/{entry['startedDateTime']}.json"
+        file = f"har_data/{project_name}/{entry['startedDateTime']}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
@@ -141,15 +141,16 @@ def save_har_data(har_data):
 with selenium_driver() as driver:
     if is_tunnel_enabled:
         start_ssh_tunnel()
-    driver.get(url)
+    driver.get("about:blank")
     loadCookies()
+    driver.get(url)
 
     project_name = input("Enter the project name to save or type `exit`: ")
     saveCookies(driver)
 
     if project_name != 'exit':
         try:
-            project_dir = f"sites/{project_name}"
+            project_dir = f"har_data/{project_name}"
             os.mkdir(project_dir)
         except OSError as error:
             logging.info(f"Failed to create folder: {error}")
