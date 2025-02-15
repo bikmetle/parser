@@ -8,3 +8,5 @@ ignore/
 cookies
 sites
 .env
+har_data/
+projects/
