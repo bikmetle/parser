@@ -99,6 +99,9 @@ def loadCookies():
         with open(cookies_file, 'r') as file:
             cookies = json.load(file)
         for cookie in cookies:
+            parsed_url = urlparse(driver.current_url)
+            domain = ".".join(parsed_url.hostname.split(".")[-2:])
+            cookie['domain']="."+domain
             driver.add_cookie(cookie)
     else:
         logging.info('No cookies file found')
@@ -141,7 +144,7 @@ def save_har_data(har_data):
 with selenium_driver() as driver:
     if is_tunnel_enabled:
         start_ssh_tunnel()
-    driver.get("about:blank")
+    driver.get(url)
     loadCookies()
     driver.get(url)
 
