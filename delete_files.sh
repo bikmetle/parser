@@ -1,6 +1,6 @@
 #!/bin/bash
 
-search_patterns=("google.com/" "yandex.com/" "mozilla.com/" "mozilla.net/" "google-analytics.com/")
+search_patterns=("google.com/" "yandex.com/" "mozilla.com/" "mozilla.net/" "google-analytics.com/" '"mimeType": "text/css"' '"mimeType": "font/woff"' '"mimeType": "image/svg+xml"')
 
 delete_files_containing_patterns() {
     local pattern

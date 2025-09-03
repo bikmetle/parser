@@ -145,8 +145,8 @@ with selenium_driver() as driver:
     if is_tunnel_enabled:
         start_ssh_tunnel()
     driver.get(url)
-    loadCookies()
-    driver.get(url)
+    # loadCookies()
+    # driver.get(url)
 
     project_name = input("Enter the project name to save or type `exit`: ")
     saveCookies(driver)
