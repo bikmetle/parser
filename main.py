@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from selenium import webdriver
 from selenium.common.exceptions import JavascriptException
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
@@ -13,6 +14,7 @@ from urllib.parse import urlparse
 from loguru import logger
 
 url = input("\nPlease enter the URL: ")
+project_name = input("Enter the project name to save or type `exit`: ")
 
 root = os.path.dirname(__file__)
 
@@ -67,6 +69,8 @@ def get_har_data(attempt=0):
         raise
 
     attempt += 1
+    logger.info(f"Get har data attempt {attempt}")
+    logger.info(f"Waiting for {attempt*2} seconds")
     time.sleep(attempt*2)
 
     try:
@@ -74,12 +78,15 @@ def get_har_data(attempt=0):
             "HAR.triggerExport().then(arguments[0]);"
         )
     except JavascriptException:
+        logger.info("JavascriptException occurred")
         return get_har_data(attempt)
 
     return har_data
 
 
-def save_har_data(har_data):
+def save_har_data(har_data, steps):
+    dict_iterator = iter(steps.items())
+    step_datetime, step_name = next(dict_iterator)
     entry_count = 0
     for entry in har_data['entries']:
         entry_count += 1
@@ -87,7 +94,14 @@ def save_har_data(har_data):
         if any(url in entry['request']['url'] for url in urls_to_skip):
             continue
 
-        file = f"har_data/{project_name}/{entry['startedDateTime']}.json"
+        started_datetime = datetime.fromisoformat(entry['startedDateTime']).astimezone(timezone.utc)
+
+        if step_datetime < started_datetime:
+            step_datetime, step_name = next(dict_iterator)
+        # step_dir = f"har_data/{project_name}/{entry_count}_{step_name}"
+        # if not os.path.exists(step_dir):
+        #     os.makedirs(step_dir)
+        file = f"har_data/{project_name}/{entry['startedDateTime']}_{step_name}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
@@ -96,16 +110,23 @@ def save_har_data(har_data):
 
 with selenium_driver() as driver:
     driver.get(url)
+    steps = dict()
+    steps[datetime.now(timezone.utc)] = "init"
 
-    project_name = input("Enter the project name to save or type `exit`: ")
+    while True:
+        step = input("Enter the step name: ")
+        if step == "exit":
+            break
+        steps[datetime.now(timezone.utc)] = step
 
     if project_name != 'exit':
-        try:
-            project_dir = f"har_data/{project_name}"
-            os.mkdir(project_dir)
-        except OSError as error:
-            logger.info(f"Failed to create folder: {error}")
+        if not os.path.exists("har_data"):
+            os.mkdir("har_data")
+
+        if not os.path.exists(f"har_data/{project_name}"):
+            os.mkdir(f"har_data/{project_name}")
 
         driver.install_addon("har-export-trigger.zip", temporary=True)
         har_data = get_har_data()
-        save_har_data(har_data)
+        steps[datetime.now(timezone.utc)] = "end"
+        save_har_data(har_data, steps)
