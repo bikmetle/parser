@@ -11,10 +11,8 @@ import time
 import subprocess
 from urllib.parse import urlparse
 from loguru import logger
-# from urls import URLS
 
 url = input("\nPlease enter the URL: ")
-logger.info("Starting firefox session.")
 
 root = os.path.dirname(__file__)
 
@@ -64,30 +62,6 @@ def selenium_driver():
         logger.info("Stop the firefox session.")
 
 
-def saveCookies(driver):
-    cookies = driver.get_cookies()
-
-    with open(cookies_file, 'w') as file:
-        json.dump(cookies, file)
-    logger.info('New Cookies saved successfully')
-
-
-def loadCookies():
-    dir_name, file_name = cookies_file.split("/")
-    if file_name in os.listdir(dir_name):
-        with open(cookies_file, 'r') as file:
-            cookies = json.load(file)
-        for cookie in cookies:
-            parsed_url = urlparse(driver.current_url)
-            domain = ".".join(parsed_url.hostname.split(".")[-2:])
-            cookie['domain']="."+domain
-            driver.add_cookie(cookie)
-    else:
-        logger.info('No cookies file found')
-    
-    driver.refresh() # Refresh Browser after login
-
-
 def get_har_data(attempt=0):
     if attempt > 10:
         raise
@@ -122,11 +96,8 @@ def save_har_data(har_data):
 
 with selenium_driver() as driver:
     driver.get(url)
-    loadCookies()
-    driver.get(url)
 
     project_name = input("Enter the project name to save or type `exit`: ")
-    saveCookies(driver)
 
     if project_name != 'exit':
         try:
