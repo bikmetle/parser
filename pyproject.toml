@@ -10,6 +10,7 @@ package-mode = false
 python = "^3.9"
 selenium = "^4.35.0"
 python-dotenv = "^1.1.1"
+loguru = "^0.7.3"
 
 
 [build-system]

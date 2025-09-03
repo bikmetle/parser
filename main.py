@@ -6,37 +6,15 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from urls_to_skip import urls_to_skip
 import json
-import logging
 import os
 import time
 import subprocess
 from urllib.parse import urlparse
-from urls import URLS
+from loguru import logger
+# from urls import URLS
 
-logging.basicConfig(level=logging.INFO)
-
-print("Available URLs:")
-for index, url in enumerate(URLS):
-    print(f"{index}: {url}")
-
-while True:
-    chosen_index = input("\nPlease enter the index of the URL: ")
-
-    try:
-        chosen_index = int(chosen_index)
-    except:
-        print("\nPlease enter a valid integer index.")
-        continue    
-
-    if chosen_index >= len(URLS):
-        print("\nPlease choose a valid index from the list")
-        continue    
-
-    url = URLS[chosen_index]
-    print(f"\nYou chose: {url}")
-    break
-
-logging.info("Starting firefox session.")
+url = input("\nPlease enter the URL: ")
+logger.info("Starting firefox session.")
 
 root = os.path.dirname(__file__)
 
@@ -50,11 +28,11 @@ def start_ssh_tunnel():
     try:
         command = ["ssh", "call", "-fN", "-D", "1080"]
         subprocess.run(command, check=True)
-        logging.info("SSH command executed successfully.")
+        logger.info("SSH command executed successfully.")
     except subprocess.CalledProcessError as e:
-        logging.info(f"An error occurred while executing the SSH command: {e}")
+        logger.info(f"An error occurred while executing the SSH command: {e}")
     except Exception as e:
-        logging.info(f"Unexpected error: {e}")
+        logger.info(f"Unexpected error: {e}")
 
 @contextmanager
 def selenium_driver():
@@ -78,11 +56,11 @@ def selenium_driver():
     )
 
     try:
-        logging.info("Start new firefox session.")
+        logger.info("Start new firefox session.")
         yield driver
     finally:
         driver.quit()
-        logging.info("Stop the firefox session.")
+        logger.info("Stop the firefox session.")
 
 
 def saveCookies(driver):
@@ -90,7 +68,7 @@ def saveCookies(driver):
 
     with open(cookies_file, 'w') as file:
         json.dump(cookies, file)
-    logging.info('New Cookies saved successfully')
+    logger.info('New Cookies saved successfully')
 
 
 def loadCookies():
@@ -104,7 +82,7 @@ def loadCookies():
             cookie['domain']="."+domain
             driver.add_cookie(cookie)
     else:
-        logging.info('No cookies file found')
+        logger.info('No cookies file found')
     
     driver.refresh() # Refresh Browser after login
 
@@ -138,7 +116,7 @@ def save_har_data(har_data):
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
-    logging.info(f"{len(har_data['entries'])} requests saved")
+    logger.info(f"{len(har_data['entries'])} requests saved")
 
 
 with selenium_driver() as driver:
@@ -156,7 +134,7 @@ with selenium_driver() as driver:
             project_dir = f"har_data/{project_name}"
             os.mkdir(project_dir)
         except OSError as error:
-            logging.info(f"Failed to create folder: {error}")
+            logger.info(f"Failed to create folder: {error}")
 
         driver.install_addon("har-export-trigger.zip", temporary=True)
         har_data = get_har_data()
