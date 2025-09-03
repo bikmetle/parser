@@ -1,4 +1,4 @@
-.vscode
+.vscode/
 browsermob-proxy
 server.log
 bmp.log
@@ -10,3 +10,5 @@ cookies
 har_data/
 projects/
 urls.py
+.cursor/
+.venv/
