@@ -39,6 +39,7 @@ def selenium_driver():
     options=Options()
     
     if is_tunnel_enabled:
+        start_ssh_tunnel()
         firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/699rashk.default-release")
     else:
         firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/dlvoc3tb.default")
@@ -120,8 +121,6 @@ def save_har_data(har_data):
 
 
 with selenium_driver() as driver:
-    if is_tunnel_enabled:
-        start_ssh_tunnel()
     driver.get(url)
     loadCookies()
     driver.get(url)
