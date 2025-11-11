@@ -47,6 +47,10 @@ def selenium_driver():
     options.add_argument("--devtools")   
     firefox_profile.set_preference("devtools.toolbox.selectedTool", "netmonitor")
     firefox_profile.set_preference("devtools.netmonitor.persistlog", True)
+    firefox_profile.set_preference("browser.cache.disk.enable", False)
+    firefox_profile.set_preference("browser.cache.memory.enable", False)
+    firefox_profile.set_preference("browser.cache.offline.enable", False)
+    firefox_profile.set_preference("network.http.use-cache", False)
     options.profile = firefox_profile
     geckodriver_path = "/usr/local/bin/geckodriver"
     driver_service = Service(executable_path=geckodriver_path)
