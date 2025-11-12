@@ -105,7 +105,7 @@ def save_har_data(har_data, steps):
         # step_dir = f"har_data/{project_name}/{entry_count}_{step_name}"
         # if not os.path.exists(step_dir):
         #     os.makedirs(step_dir)
-        file = f"har_data/{project_name}/{entry['startedDateTime']}_{step_name}.json"
+        file = f"har_data/{project_name}/{entry['startedDateTime'][11:]}_{step_name}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
