@@ -21,7 +21,7 @@ root = os.path.dirname(__file__)
 parsed_url = urlparse(url)
 hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
-is_tunnel_enabled = False
+is_tunnel_enabled = True
 
 
 def start_ssh_tunnel():
@@ -42,7 +42,7 @@ def selenium_driver():
         start_ssh_tunnel()
         firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/699rashk.default-release")
     else:
-        firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/dlvoc3tb.default")
+        firefox_profile = FirefoxProfile("/home/bikmetle/.mozilla/firefox/8cqvs1rn.default-1762880211570")
 
     options.add_argument("--devtools")   
     firefox_profile.set_preference("devtools.toolbox.selectedTool", "netmonitor")
@@ -105,7 +105,7 @@ def save_har_data(har_data, steps):
         # step_dir = f"har_data/{project_name}/{entry_count}_{step_name}"
         # if not os.path.exists(step_dir):
         #     os.makedirs(step_dir)
-        file = f"har_data/{project_name}/{entry['startedDateTime'][11:]}_{step_name}.json"
+        file = f"har_data/{project_name}/{entry['startedDateTime'][11:23]}_{step_name}.json"
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(entry, f, ensure_ascii=False, indent=4)
 
