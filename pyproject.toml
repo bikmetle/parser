@@ -11,6 +11,7 @@ python = "^3.9"
 selenium = "^4.35.0"
 python-dotenv = "^1.1.1"
 loguru = "^0.7.3"
+openai = "^2.0.0"
 
 
 [build-system]

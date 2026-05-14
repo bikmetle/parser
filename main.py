@@ -21,7 +21,7 @@ root = os.path.dirname(__file__)
 parsed_url = urlparse(url)
 hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
-is_tunnel_enabled = True
+is_tunnel_enabled = False
 
 
 def start_ssh_tunnel():
@@ -118,7 +118,7 @@ with selenium_driver() as driver:
     steps[datetime.now(timezone.utc)] = "init"
 
     while True:
-        step = input("Enter the step name: ")
+        step = input("Enter the previous step name: ")
         if step == "exit":
             break
         steps[datetime.now(timezone.utc)] = step
@@ -134,3 +134,16 @@ with selenium_driver() as driver:
         har_data = get_har_data()
         steps[datetime.now(timezone.utc)] = "end"
         save_har_data(har_data, steps)
+
+
+
+
+    # for name, value in cookies_dict.items():
+    #     try:
+    #         driver.add_cookie({
+    #             'name': name,
+    #             'value': value,
+    #             'domain': urlparse(driver.current_url).hostname
+    #         })
+    #     except Exception as e:
+    #         logger.warning(f"Failed to add cookie {name}: {e}")
