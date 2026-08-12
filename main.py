@@ -1,17 +1,24 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import JavascriptException
+from selenium.common.exceptions import JavascriptException, NoSuchDriverException
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from urls_to_skip import urls_to_skip
 import json
 import os
+import platform
+import shutil
 import time
 import subprocess
+import tarfile
+import tempfile
+import zipfile
 from urllib.parse import urlparse
 from loguru import logger
+import requests
 
 url = input("\nPlease enter the URL: ")
 project_name = input("Enter the project name to save or type `exit`: ")
@@ -22,6 +29,72 @@ parsed_url = urlparse(url)
 hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
 is_tunnel_enabled = False
+
+
+def download_geckodriver() -> Path:
+    """Download the latest geckodriver release and return its local path."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+
+    if system == "linux":
+        asset_platform = "linux-aarch64" if machine in {"aarch64", "arm64"} else "linux64"
+    elif system == "darwin":
+        asset_platform = "macos-aarch64" if machine in {"aarch64", "arm64"} else "macos"
+    elif system == "windows":
+        asset_platform = "win-aarch64" if machine in {"aarch64", "arm64"} else "win64"
+    else:
+        raise RuntimeError(f"Unsupported platform for geckodriver: {system}/{machine}")
+
+    driver_name = "geckodriver.exe" if system == "windows" else "geckodriver"
+    driver_path = Path(root) / ".drivers" / driver_name
+    if driver_path.is_file():
+        return driver_path
+
+    driver_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Downloading geckodriver for {asset_platform}...")
+    release_response = requests.get(
+        "https://api.github.com/repos/mozilla/geckodriver/releases/latest",
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=30,
+    )
+    release_response.raise_for_status()
+    assets = release_response.json()["assets"]
+    asset = next(
+        (
+            item
+            for item in assets
+            if asset_platform in item["name"]
+            and item["name"].endswith((".tar.gz", ".zip"))
+        ),
+        None,
+    )
+    if asset is None:
+        raise RuntimeError(f"No geckodriver release found for {asset_platform}")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        archive_path = Path(temp_dir) / asset["name"]
+        with requests.get(asset["browser_download_url"], stream=True, timeout=120) as response:
+            response.raise_for_status()
+            with archive_path.open("wb") as archive_file:
+                shutil.copyfileobj(response.raw, archive_file)
+
+        if archive_path.name.endswith(".zip"):
+            with zipfile.ZipFile(archive_path) as archive:
+                with archive.open(driver_name) as source, driver_path.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+        else:
+            with tarfile.open(archive_path, "r:gz") as archive:
+                member = archive.getmember(driver_name)
+                source = archive.extractfile(member)
+                if source is None:
+                    raise RuntimeError("geckodriver binary is missing from the archive")
+                with source, driver_path.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+
+    driver_path.chmod(0o755)
+    logger.info(f"Geckodriver installed at {driver_path}")
+    return driver_path
 
 
 def start_ssh_tunnel():
@@ -52,13 +125,19 @@ def selenium_driver():
     firefox_profile.set_preference("browser.cache.offline.enable", False)
     firefox_profile.set_preference("network.http.use-cache", False)
     options.profile = firefox_profile
-    geckodriver_path = "/usr/local/bin/geckodriver"
-    driver_service = Service(executable_path=geckodriver_path)
-
-    driver = webdriver.Firefox(
-        service=driver_service,
-        options=options,
-    )
+    geckodriver_path = Path("/usr/local/bin/geckodriver")
+    try:
+        driver = webdriver.Firefox(
+            service=Service(executable_path=str(geckodriver_path)),
+            options=options,
+        )
+    except NoSuchDriverException:
+        logger.warning(f"Geckodriver was not found at {geckodriver_path}")
+        geckodriver_path = download_geckodriver()
+        driver = webdriver.Firefox(
+            service=Service(executable_path=str(geckodriver_path)),
+            options=options,
+        )
 
     try:
         logger.info("Start new firefox session.")

@@ -23,6 +23,37 @@ RESUME_HASH = os.getenv("HH_RESUME_HASH", "64931b3aff0e1f688b0039ed1f4d375463637
 
 vacancy_ids = []
 
+def get_applicable_vacancy_ids(html):
+    soup = BeautifulSoup(html, "html.parser")
+    ids = []
+    seen_ids = set()
+
+    for card in soup.select('div[id][class*="vacancy-card"]'):
+        apply_link = card.select_one(
+            'a[data-qa="vacancy-serp__vacancy_response"][href*="vacancy_response"]'
+        )
+        if not apply_link:
+            continue
+        link_text = apply_link.get_text(" ", strip=True)
+        # if "Откликнуться" not in link_text:
+        if "Respond" not in link_text:
+            continue
+
+        vacancy_id = None
+        href = apply_link.get("href", "")
+        vacancy_id_match = re.search(r"[?&]vacancyId=(\d+)", href)
+        employer_id_match = re.search(r"[?&]employerId=(\d+)", href)
+        if vacancy_id_match:
+            vacancy_id = vacancy_id_match.group(1)
+        elif card.get("id", "").isdigit():
+            vacancy_id = card["id"]
+
+        if vacancy_id and vacancy_id not in seen_ids:
+            seen_ids.add(vacancy_id)
+            ids.append(vacancy_id)
+
+    return ids
+
 def get_vacancy_ids(page=None):
     base_url = "https://hh.ru/search/vacancy"
     params = {
@@ -30,8 +61,9 @@ def get_vacancy_ids(page=None):
         "L_save_area": "true",
         "experience": "between3And6",
         "search_field": "name",
-        "work_format": "REMOTE",
+        # "work_format": "REMOTE",
         "text": "python developer",
+        # "text": "python разработчик",
     }
     if page:
         params["page"] = page
@@ -41,9 +73,8 @@ def get_vacancy_ids(page=None):
     print(f"Status Code: {response.status_code}")
     print(f"Content Length: {len(response.text)}")
 
-    ids = re.findall(r'"vacancyId":(\d+)', response.text)
-    ids = list(set(ids))  # Remove duplicates
-    print(f"Found {len(ids)} unique vacancy IDs:")
+    ids = get_applicable_vacancy_ids(response.text)
+    print(f"Found {len(ids)} vacancies with Откликнуться:")
 
     if not ids:
         raise VacancyIdsNotFoundError
@@ -87,10 +118,12 @@ def make_cover_letter(cv_text, vacancy_description):
     response = client.responses.create(
         model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
         instructions=(
-            "You write concise, natural Russian cover letters for hh.ru job applications. "
-            "Use only facts from the CV. Match the candidate's skills to the vacancy. "
+            "You write short, human-sounding Russian cover letters for hh.ru job applications. "
+            "Write like a real applicant: warm, specific, and not too polished or template-like. "
+            "Use only facts from the CV and connect them naturally to the vacancy requirements. "
             "Do not invent experience, companies, education, salary, or availability. "
-            "Keep it professional, friendly, and under 180 words."
+            "Avoid generic phrases, buzzwords, exaggerated enthusiasm, and long formal openings. "
+            "Keep it professional, friendly, and under 160 words."
         ),
         input=f"""
 CV:
@@ -171,7 +204,8 @@ cv_text = read_cv()
 session = requests.Session()
 for vid in vacancy_ids:
     vacancy_description = get_vacancy_description(session, vid)
+
     cover_letter = make_cover_letter(cv_text, vacancy_description)
-    print(f"\nCover letter for vacancy {vid}:\n{cover_letter}\n")
+    print(f"\nCover letter for vacancy https://hh.ru/vacancy/{vid}:\n{cover_letter}\n")
 
     apply_to_vacancy(session, vid, cover_letter)

@@ -21,10 +21,11 @@ def get_vacancy_ids(page=None):
     params = {
         "enable_snippets": "false",
         "L_save_area": "true",
-        "experience": "between3And6",
-        "search_field": "name",
+        # "experience": "between3And6",
+        "search_field": ["name","company_name", "description"],
         "work_format": "REMOTE",
-        "text": "python developer",
+        # "text": "python developer",
+        "text": "python",
     }
     if page:
         params["page"] = page
