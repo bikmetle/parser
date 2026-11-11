@@ -5,7 +5,7 @@ from selenium import webdriver
 from selenium.common.exceptions import JavascriptException, NoSuchDriverException
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from urls_to_skip import urls_to_skip
 import json
 import os
@@ -29,6 +29,12 @@ parsed_url = urlparse(url)
 hostname = ".".join(parsed_url.hostname.split(".")[:-1])
 cookies_file = f"cookies/{hostname}.json"
 is_tunnel_enabled = False
+geckodriver_path = Path(__file__).resolve().parent / ".drivers" / "geckodriver"
+
+
+class GeckoDriverService(FirefoxService):
+    def send_remote_shutdown_command(self) -> None:
+        """Avoid Selenium's unsupported GET /shutdown request to geckodriver."""
 
 
 def download_geckodriver() -> Path:
@@ -46,11 +52,10 @@ def download_geckodriver() -> Path:
         raise RuntimeError(f"Unsupported platform for geckodriver: {system}/{machine}")
 
     driver_name = "geckodriver.exe" if system == "windows" else "geckodriver"
-    driver_path = Path(root) / ".drivers" / driver_name
-    if driver_path.is_file():
-        return driver_path
+    if geckodriver_path.is_file():
+        return geckodriver_path
 
-    driver_path.parent.mkdir(parents=True, exist_ok=True)
+    geckodriver_path.parent.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Downloading geckodriver for {asset_platform}...")
     release_response = requests.get(
@@ -81,7 +86,7 @@ def download_geckodriver() -> Path:
 
         if archive_path.name.endswith(".zip"):
             with zipfile.ZipFile(archive_path) as archive:
-                with archive.open(driver_name) as source, driver_path.open("wb") as target:
+                with archive.open(driver_name) as source, geckodriver_path.open("wb") as target:
                     shutil.copyfileobj(source, target)
         else:
             with tarfile.open(archive_path, "r:gz") as archive:
@@ -89,12 +94,12 @@ def download_geckodriver() -> Path:
                 source = archive.extractfile(member)
                 if source is None:
                     raise RuntimeError("geckodriver binary is missing from the archive")
-                with source, driver_path.open("wb") as target:
+                with source, geckodriver_path.open("wb") as target:
                     shutil.copyfileobj(source, target)
 
-    driver_path.chmod(0o755)
-    logger.info(f"Geckodriver installed at {driver_path}")
-    return driver_path
+    geckodriver_path.chmod(0o755)
+    logger.info(f"Geckodriver installed at {geckodriver_path}")
+    return geckodriver_path
 
 
 def start_ssh_tunnel():
@@ -109,7 +114,7 @@ def start_ssh_tunnel():
 
 @contextmanager
 def selenium_driver():
-    options=Options()
+    options = Options()
     
     if is_tunnel_enabled:
         start_ssh_tunnel()
@@ -125,26 +130,35 @@ def selenium_driver():
     firefox_profile.set_preference("browser.cache.offline.enable", False)
     firefox_profile.set_preference("network.http.use-cache", False)
     options.profile = firefox_profile
-    geckodriver_path = Path("/usr/local/bin/geckodriver")
+    driver = None
+    profile_copy = Path(firefox_profile.path).resolve()
+    profile_copy_root = profile_copy.parent
     try:
-        driver = webdriver.Firefox(
-            service=Service(executable_path=str(geckodriver_path)),
-            options=options,
-        )
-    except NoSuchDriverException:
-        logger.warning(f"Geckodriver was not found at {geckodriver_path}")
-        geckodriver_path = download_geckodriver()
-        driver = webdriver.Firefox(
-            service=Service(executable_path=str(geckodriver_path)),
-            options=options,
-        )
+        try:
+            driver = webdriver.Firefox(
+                service=GeckoDriverService(executable_path=str(geckodriver_path)),
+                options=options,
+            )
+        except NoSuchDriverException:
+            logger.warning(f"Geckodriver was not found at {geckodriver_path}")
+            download_geckodriver()
+            driver = webdriver.Firefox(
+                service=GeckoDriverService(executable_path=str(geckodriver_path)),
+                options=options,
+            )
 
-    try:
         logger.info("Start new firefox session.")
         yield driver
     finally:
-        driver.quit()
-        logger.info("Stop the firefox session.")
+        if driver is not None:
+            driver.quit()
+            logger.info("Stop the firefox session.")
+        temp_root = Path(tempfile.gettempdir()).resolve()
+        if (
+            profile_copy.name == "webdriver-py-profilecopy"
+            and profile_copy_root.parent == temp_root
+        ):
+            shutil.rmtree(profile_copy_root, ignore_errors=True)
 
 
 def get_har_data(attempt=0):
