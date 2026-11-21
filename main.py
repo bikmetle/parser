@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import JavascriptException, NoSuchDriverException
+from selenium.common.exceptions import JavascriptException, NoSuchDriverException, WebDriverException
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service as FirefoxService
@@ -207,6 +207,20 @@ def save_har_data(har_data, steps):
 
 with selenium_driver() as driver:
     driver.get(url)
+    if Path(cookies_file).is_file():
+        with open(cookies_file, encoding="utf-8") as f:
+            saved_cookies = json.load(f)
+        restored_count = 0
+        for cookie in saved_cookies:
+            try:
+                driver.add_cookie(cookie)
+                restored_count += 1
+            except WebDriverException as exc:
+                logger.warning(f"Could not restore cookie {cookie.get('name')}: {exc.msg}")
+        if restored_count:
+            driver.refresh()
+        logger.info(f"Restored {restored_count}/{len(saved_cookies)} cookies from {cookies_file}")
+
     steps = dict()
     steps[datetime.now(timezone.utc)] = "init"
 
@@ -228,15 +242,7 @@ with selenium_driver() as driver:
         steps[datetime.now(timezone.utc)] = "end"
         save_har_data(har_data, steps)
 
-
-
-
-    # for name, value in cookies_dict.items():
-    #     try:
-    #         driver.add_cookie({
-    #             'name': name,
-    #             'value': value,
-    #             'domain': urlparse(driver.current_url).hostname
-    #         })
-    #     except Exception as e:
-    #         logger.warning(f"Failed to add cookie {name}: {e}")
+    Path(cookies_file).parent.mkdir(parents=True, exist_ok=True)
+    with open(cookies_file, "w", encoding="utf-8") as f:
+        json.dump(driver.get_cookies(), f, ensure_ascii=False, indent=4)
+    logger.info(f"Cookies saved to {cookies_file}")
